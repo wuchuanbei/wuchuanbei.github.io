@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="module释放module释放基本原理Python模块释放问题，是我在工作中遇到的一个问题：使用python模块存放数据，并进行动态加载，使用完后，还需要将模块释放掉。当时怀疑python模块可能并未释放，从而导致内存泄漏。事实上，python模块的释放与其他python内对象的释放并没有什么不同：当对象的引用计数为0，就会释放该对象。Python内存垃圾回收主要使用引用计数，引用计数为0，就会">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python模块释放">
+<meta property="og:url" content="http://yoursite.com/2018/10/14/python-module-release/index.html">
+<meta property="og:site_name" content="Chuanbei&#39;s Blog">
+<meta property="og:description" content="module释放module释放基本原理Python模块释放问题，是我在工作中遇到的一个问题：使用python模块存放数据，并进行动态加载，使用完后，还需要将模块释放掉。当时怀疑python模块可能并未释放，从而导致内存泄漏。事实上，python模块的释放与其他python内对象的释放并没有什么不同：当对象的引用计数为0，就会释放该对象。Python内存垃圾回收主要使用引用计数，引用计数为0，就会">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-10-18T00:29:17.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="python模块释放">
+<meta name="twitter:description" content="module释放module释放基本原理Python模块释放问题，是我在工作中遇到的一个问题：使用python模块存放数据，并进行动态加载，使用完后，还需要将模块释放掉。当时怀疑python模块可能并未释放，从而导致内存泄漏。事实上，python模块的释放与其他python内对象的释放并没有什么不同：当对象的引用计数为0，就会释放该对象。Python内存垃圾回收主要使用引用计数，引用计数为0，就会">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/10/14/python-module-release/"/>
+
+
+
+
+
+  <title>python模块释放 | Chuanbei's Blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Chuanbei's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/14/python-module-release/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Chuanbei Wu">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Chuanbei's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">python模块释放</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-10-14T23:53:06+08:00">
+                2018-10-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="module释放"><a href="#module释放" class="headerlink" title="module释放"></a>module释放</h1><h2 id="module释放基本原理"><a href="#module释放基本原理" class="headerlink" title="module释放基本原理"></a>module释放基本原理</h2><p>Python模块释放问题，是我在工作中遇到的一个问题：使用python模块存放数据，并进行动态加载，使用完后，还需要将模块释放掉。<br>当时怀疑python模块可能并未释放，从而导致内存泄漏。事实上，python模块的释放与其他python内对象的释放并没有什么不同：<strong>当对象的引用计数为0，就会释放该对象</strong>。<br>Python内存垃圾回收主要使用引用计数，引用计数为0，就会立即进行垃圾回收。同时为了解决循环引用的问题，Python垃圾回收中引入了<strong>标记-清除</strong>、<strong>分代回收</strong>的垃圾回收机制。<br>因此要释放Python模块，只要保证模块的引用计数为0：<strong>删除所有对模块引用的地方（包括<code>sys.modules</code>）</strong>。可以使用<code>sys.getrefcount</code>查看对象的引用计数，注意<code>sys.getrefcount</code>也会对当前对象的引用加1。<br>模块释放的源码如下：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> Py_DECREF(op)                                   \</span></span><br><span class="line">    <span class="keyword">do</span> &#123;                                                \</span><br><span class="line">        <span class="keyword">if</span>(--((PyObject*)(op))-&gt;ob_refcnt != <span class="number">0</span>)         \</span><br><span class="line">            _Py_CHECK_REFCNT(op)                        \</span><br><span class="line">        <span class="keyword">else</span>                                            \</span><br><span class="line">        _Py_Dealloc((PyObject *)(op));                  \</span><br><span class="line">    &#125; <span class="keyword">while</span> (<span class="number">0</span>)</span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _Py_Dealloc(op) ((*Py_TYPE(op)-&gt;tp_dealloc)((PyObject *)(op)))</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> Py_TYPE(ob)             (((PyObject*)(ob))-&gt;ob_type)</span></span><br></pre></td></tr></table></figure></p>
+<p>module对象的<code>ob_type</code>是<code>PyModule_Type</code>，释放时调用了模块的释放函数<code>module_deallc</code>：<br><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">PyTypeObject PyModule_Type = &#123;</span><br><span class="line">    ...</span><br><span class="line">    (destructor)module_dealloc,                 <span class="comment">/* tp_dealloc */</span></span><br><span class="line">    ...</span><br><span class="line">    PyObject_GC_Del,                            <span class="comment">/* tp_free */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">module_dealloc(PyModuleObject *m)</span><br><span class="line">&#123;</span><br><span class="line">    PyObject_GC_UnTrack(m);</span><br><span class="line">    <span class="keyword">if</span> (m-&gt;md_dict != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        _PyModule_Clear((PyObject *)m); <span class="comment">// 清理该模块引用的对象</span></span><br><span class="line">        Py_DECREF(m-&gt;md_dict);</span><br><span class="line">    &#125;</span><br><span class="line">    Py_TYPE(m)-&gt;tp_free((PyObject *)m);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span></span><br><span class="line">PyObject_GC_Del(<span class="keyword">void</span> *op)</span><br><span class="line">&#123;</span><br><span class="line">    PyGC_Head *g = AS_GC(op);</span><br><span class="line">    <span class="keyword">if</span> (IS_TRACKED(op))</span><br><span class="line">        gc_list_remove(g);</span><br><span class="line">    <span class="keyword">if</span> (generations[<span class="number">0</span>].count &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        generations[<span class="number">0</span>].count--;</span><br><span class="line">    &#125;</span><br><span class="line">    PyObject_FREE(g);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="例外"><a href="#例外" class="headerlink" title="例外"></a>例外</h2><p>Python的<strong>内建模块</strong>（<code>_PyImport_Inittab</code>中的模块）和<strong>扩展模块</strong>（<code>_PyImport_DynLoadFiletab</code>表中指定的扩展类型）的释放略微不同，这两类模块在加载时，会调用<code>_PyImport_FixupExtension</code>放入<strong>备份列表</strong>（<code>extensions</code>全局变量）中，而加载完成返回的只是对<strong>备份列表</strong>中的module对象的拷贝。<br>这就会导致一个问题，释放<strong>内建模块</strong>和<strong>扩展模块</strong>只是释放了对应模块的拷贝，而该模块并未被完全释放。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>module并不适合用来存放数据，一是module的加载机制效率低，二是module在Python内部也有自己的类型定义，加载进内存时，还会存放其他一些模块相关的信息，需要占用更多内存。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>《Python源码剖析》</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/10/18/hello-world/" rel="prev" title="Hello World">
+                Hello World <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Chuanbei Wu</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#module释放"><span class="nav-number">1.</span> <span class="nav-text">module释放</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#module释放基本原理"><span class="nav-number">1.1.</span> <span class="nav-text">module释放基本原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#例外"><span class="nav-number">1.2.</span> <span class="nav-text">例外</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">1.3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">1.4.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Chuanbei Wu</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Muse</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
